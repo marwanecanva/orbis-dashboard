@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbis et Moi — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --surface2: #f0efe9;
+  --text: #1a1916;
+  --text2: #6b6a64;
+  --text3: #9c9b94;
+  --border: rgba(26,25,22,0.1);
+  --border2: rgba(26,25,22,0.06);
+  --accent: #1a1916;
+  --pm: #2563eb;
+  --pm-bg: #eff6ff;
+  --pnm: #059669;
+  --pnm-bg: #ecfdf5;
+  --autres: #92400e;
+  --autres-bg: #fef3c7;
+  --new: #0891b2;
+  --new-bg: #e0f2fe;
+  --hab: #7c3aed;
+  --hab-bg: #f5f3ff;
+  --red: #dc2626;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* LOGIN */
+#loginScreen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+.login-box {
+  background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); padding: 2.5rem; width: 380px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+.login-logo { text-align: center; margin-bottom: 2rem; }
+.login-logo h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+.login-logo p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.login-field { margin-bottom: 1rem; }
+.login-field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text2); }
+.login-field input {
+  width: 100%; padding: 10px 14px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface2);
+  font-size: 14px; font-family: inherit; outline: none; color: var(--text);
+  transition: border-color 0.15s;
+}
+.login-field input:focus { border-color: var(--accent); }
+.login-error { font-size: 13px; color: var(--red); margin-bottom: 1rem; display: none; }
+.btn-login {
+  width: 100%; padding: 11px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500;
+  font-family: inherit; cursor: pointer; transition: opacity 0.15s;
+}
+.btn-login:hover { opacity: 0.85; }
+
+/* APP */
+#app { display: none; min-height: 100vh; }
+
+/* TOPBAR */
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border2);
+  padding: 0 2rem; height: 56px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-logo { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+.topbar-sep { width: 1px; height: 20px; background: var(--border); }
+.topbar-sub { font-size: 13px; color: var(--text2); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* CONTROLS BAR */
+.controls-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border2);
+  padding: 0.75rem 2rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.ctrl-group { display: flex; align-items: center; gap: 8px; }
+.ctrl-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+.ctrl-select {
+  font-size: 13px; padding: 6px 10px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-family: inherit; outline: none; cursor: pointer;
+}
+.ctrl-select:focus { border-color: var(--accent); }
+.upload-btn {
+  display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
+  padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.upload-btn:hover { background: var(--border2); }
+.upload-btn svg { width: 14px; height: 14px; }
+.file-name { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+.logout-btn {
+  font-size: 13px; padding: 6px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: transparent; color: var(--text2);
+  cursor: pointer; font-family: inherit;
+}
+.logout-btn:hover { color: var(--red); border-color: var(--red); }
+
+/* MAIN */
+.main { padding: 1.5rem 2rem 3rem; max-width: 1200px; margin: 0 auto; }
+
+/* UPLOAD ZONE */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius-lg);
+  padding: 4rem 2rem; text-align: center; margin-bottom: 2rem;
+  background: var(--surface); transition: border-color 0.2s;
+}
+.upload-zone:hover { border-color: var(--accent); }
+.upload-zone svg { width: 40px; height: 40px; color: var(--text3); margin-bottom: 1rem; }
+.upload-zone h3 { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+.upload-zone p { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+.btn-upload {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500;
+  font-family: inherit; cursor: pointer;
+}
+
+/* METRICS */
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 1rem 1.25rem;
+}
+.metric-card .m-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; margin-bottom: 8px; }
+.metric-card .m-value { font-size: 26px; font-weight: 600; letter-spacing: -1px; color: var(--text); }
+.metric-card .m-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* NH CARDS */
+.nh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+.nh-card {
+  border-radius: var(--radius); padding: 1.25rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.nh-card.nouveaux { background: var(--new-bg); border: 1px solid rgba(8,145,178,0.15); }
+.nh-card.habitues { background: var(--hab-bg); border: 1px solid rgba(124,58,237,0.15); }
+.nh-card .nh-info .nh-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.nh-card.nouveaux .nh-info .nh-label { color: var(--new); }
+.nh-card.habitues .nh-info .nh-label { color: var(--hab); }
+.nh-card .nh-info .nh-desc { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.nh-card .nh-value { font-size: 36px; font-weight: 700; letter-spacing: -2px; }
+.nh-card.nouveaux .nh-value { color: var(--new); }
+.nh-card.habitues .nh-value { color: var(--hab); }
+
+/* TABS */
+.tabs-row { display: flex; gap: 2px; margin-bottom: 1.25rem; background: var(--surface2); border-radius: var(--radius); padding: 3px; width: fit-content; }
+.tab-btn {
+  font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 8px;
+  border: none; background: transparent; color: var(--text2); cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.tab-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+/* SECTION CARD */
+.section-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;
+}
+.section-card h2 { font-size: 14px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem; }
+
+/* LEGEND */
+.legend-row { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* TABLE */
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
+  color: var(--text2); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border2); color: var(--text); }
+tbody tr:hover td { background: var(--surface2); }
+tbody tr:last-child td { border-bottom: none; }
+.badge {
+  display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px;
+  border-radius: 999px; letter-spacing: 0.02em;
+}
+.badge-pm { background: var(--pm-bg); color: var(--pm); }
+.badge-pnm { background: var(--pnm-bg); color: var(--pnm); }
+.badge-autres { background: var(--autres-bg); color: var(--autres); }
+.rank { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; font-weight: 500; }
+
+/* NOTE BLOCK */
+.note-block {
+  background: #fffbeb; border: 1px solid rgba(217,119,6,0.2);
+  border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+  font-size: 12px; color: #92400e; line-height: 1.6;
+}
+
+/* EMPTY */
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--text3); }
+.empty-state svg { width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.4; }
+.empty-state p { font-size: 14px; }
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .main { padding: 1rem; }
+  .topbar { padding: 0 1rem; }
+  .controls-bar { padding: 0.75rem 1rem; }
+  .nh-grid { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>Orbis et Moi</h1>
+      <p>Dashboard analytique — APHP</p>
+    </div>
+    <div class="login-field">
+      <label>Mot de passe</label>
+      <input type="password" id="pwdInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="loginError">Mot de passe incorrect.</div>
+    <button class="btn-login" onclick="doLogin()">Accéder au dashboard</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">Orbis et Moi</span>
+      <div class="topbar-sep"></div>
+      <span class="topbar-sub">Dashboard visiteurs</span>
+    </div>
+    <div class="topbar-right">
+      <button class="logout-btn" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <label class="ctrl-label">Fichier</label>
+      <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Importer Excel
+      </button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="loadFile(this)">
+      <span class="file-name" id="fileName">Aucun fichier</span>
+    </div>
+    <div class="ctrl-group">
+      <label class="ctrl-label">Année</label>
+      <select class="ctrl-select" id="yearSelect" onchange="render()"></select>
+    </div>
+    <div class="ctrl-group">
+      <label class="ctrl-label">Vue</label>
+      <select class="ctrl-select" id="viewSelect" onchange="setupYears();render()">
+        <option value="brut">Données brutes</option>
+        <option value="unique">Visiteurs uniques</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- UPLOAD ZONE (before file loaded) -->
+    <div class="upload-zone" id="uploadZone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <h3>Importer votre fichier Excel</h3>
+      <p>Glissez-déposez votre fichier ou cliquez sur le bouton ci-dessous.<br>Feuilles attendues : <strong>DATA</strong> et/ou <strong>DATA - Uniques</strong></p>
+      <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Choisir un fichier
+      </button>
+    </div>
+
+    <!-- DASHBOARD (after file loaded) -->
+    <div id="dashContent" style="display:none">
+
+      <!-- METRICS -->
+      <div class="metrics-grid" id="metricsGrid"></div>
+
+      <!-- NOUVEAUX / HABITUES -->
+      <div class="nh-grid" id="nhGrid" style="display:none"></div>
+
+      <!-- NOTE -->
+      <div class="note-block" id="noteBlock" style="display:none">
+        <strong>Nouveaux visiteurs</strong> : personnes qui visitent Orbis et Moi pour la première fois dans l'année en cours.<br>
+        <strong>Visiteurs habitués</strong> : personnes ayant déjà visité au moins une fois dans les mois précédents de la même année.<br>
+        ⚠ Le compteur repart à zéro chaque année.
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs-row">
+        <button class="tab-btn active" onclick="showTab('categories',this)">Par catégorie</button>
+        <button class="tab-btn" onclick="showTab('evolution',this)">Évolution</button>
+        <button class="tab-btn" onclick="showTab('metiers',this)">Par métier</button>
+        <button class="tab-btn" onclick="showTab('sites',this)">Par site</button>
+      </div>
+
+      <!-- TAB: CATEGORIES -->
+      <div id="tab-categories">
+        <div class="section-card">
+          <h2>Visites par catégorie et par mois</h2>
+          <div class="legend-row" id="legendCat"></div>
+          <div style="position:relative;height:300px"><canvas id="chartCat" role="img" aria-label="Visites par catégorie PM PNM Autres par mois"></canvas></div>
+        </div>
+        <div class="section-card">
+          <h2>Répartition par catégorie</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div style="position:relative;height:220px"><canvas id="chartPie" role="img" aria-label="Répartition en camembert PM PNM Autres"></canvas></div>
+            <div id="catStats" style="display:flex;flex-direction:column;justify-content:center;gap:12px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: EVOLUTION -->
+      <div id="tab-evolution" style="display:none">
+        <div class="section-card">
+          <h2>Évolution mensuelle — Nouveaux vs Habitués</h2>
+          <div class="legend-row" id="legendEvo"></div>
+          <div style="position:relative;height:300px"><canvas id="chartEvo" role="img" aria-label="Évolution nouveaux et habitués par mois"></canvas></div>
+        </div>
+        <div class="section-card">
+          <h2>Tableau récapitulatif</h2>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Mois</th><th>Nouveaux</th><th>Habitués</th><th>Total</th><th>% Nouveaux</th></tr></thead>
+              <tbody id="tableEvo"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: METIERS -->
+      <div id="tab-metiers" style="display:none">
+        <div class="section-card">
+          <h2>Top 30 métiers — visites totales</h2>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>#</th><th>Métier</th><th>Catégorie</th><th>Visites</th></tr></thead>
+              <tbody id="tableMetiers"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: SITES -->
+      <div id="tab-sites" style="display:none">
+        <div class="section-card">
+          <h2>Top 30 sites — visites totales</h2>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>#</th><th>Site hospitalier</th><th>Visites</th></tr></thead>
+              <tbody id="tableSites"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section-card">
+          <h2>Évolution par site (top 5)</h2>
+          <div class="legend-row" id="legendSites"></div>
+          <div style="position:relative;height:300px"><canvas id="chartSites" role="img" aria-label="Évolution des 5 premiers sites par mois"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── MOT DE PASSE ───────────────────────────────────────────────────────────
+// Changez la valeur ci-dessous pour modifier le mot de passe
+const PASSWORD = 'orbis2025';
+
+function doLogin() {
+  const val = document.getElementById('pwdInput').value;
+  if (val === PASSWORD) {
+    sessionStorage.setItem('orbis_auth', '1');
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('pwdInput').value = '';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('orbis_auth');
+  location.reload();
+}
+
+if (sessionStorage.getItem('orbis_auth') === '1') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+// ─── DONNÉES ────────────────────────────────────────────────────────────────
+let allData = [], uniqueData = [];
+let chartCatInst = null, chartPieInst = null, chartEvoInst = null, chartSitesInst = null;
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTHS_SHORT = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const SITE_COLORS = ['#2563eb','#059669','#d97706','#dc2626','#7c3aed'];
+
+function loadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+    allData = []; uniqueData = [];
+    for (const name of wb.SheetNames) {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { raw: false, defval: '' });
+      if (!rows.length) continue;
+      const nameLower = name.toLowerCase().trim();
+      if (nameLower.includes('unique') && nameLower.includes('data')) {
+        uniqueData = rows;
+      } else if (nameLower === 'data' || (nameLower.startsWith('data') && !nameLower.includes('unique') && !nameLower.includes('analyse') && !nameLower.includes('visiteur'))) {
+        allData = rows;
+      }
+    }
+    // Si pas trouvé, prendre la feuille avec le plus de lignes
+    if (!allData.length && !uniqueData.length) {
+      let maxRows = 0; let maxSheet = wb.SheetNames[0];
+      for (const name of wb.SheetNames) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { raw: false, defval: '' });
+        if (rows.length > maxRows) { maxRows = rows.length; maxSheet = name; }
+      }
+      allData = XLSX.utils.sheet_to_json(wb.Sheets[maxSheet], { raw: false, defval: '' });
+    }
+    document.getElementById('uploadZone').style.display = 'none';
+    document.getElementById('dashContent').style.display = 'block';
+    setupYears();
+    render();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function getData() {
+  const v = document.getElementById('viewSelect').value;
+  if (v === 'unique' && uniqueData.length) return uniqueData;
+  return allData.length ? allData : uniqueData;
+}
+
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val) ? null : val;
+  const s = String(val).trim();
+  if (/^\d{4,6}$/.test(s)) {
+    const serial = parseInt(s);
+    if (serial > 1000 && serial < 100000) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const dt = new Date(excelEpoch.getTime() + serial * 86400000);
+      return isNaN(dt) ? null : dt;
+    }
+  }
+  const parts = s.split('/');
+  if (parts.length === 3) {
+    const d = parseInt(parts[0]);
+    const m = parseInt(parts[1]);
+    const y = parseInt(parts[2]);
+    if (y > 1900 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      const dt = new Date(y, m - 1, d);
+      return isNaN(dt) ? null : dt;
+    }
+  }
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const dt = new Date(+isoMatch[1], +isoMatch[2]-1, +isoMatch[3]);
+    return isNaN(dt) ? null : dt;
+  }
+  const dashMatch = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+  if (dashMatch) {
+    const dt = new Date(+dashMatch[3], +dashMatch[2]-1, +dashMatch[1]);
+    return isNaN(dt) ? null : dt;
+  }
+  const dt = new Date(s);
+  return isNaN(dt) ? null : dt;
+}
+
+function getKey(row, keys) {
+  for (const k of keys) if (k in row) return row[k];
+  return '';
+}
+
+function setupYears() {
+  const data = getData();
+  const years = new Set();
+  for (const r of data) {
+    const d = parseDate(getKey(r, ['date_event','Date_event','DATE_EVENT']));
+    if (d) years.add(d.getFullYear());
+  }
+  const sel = document.getElementById('yearSelect');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  [...years].sort((a,b) => b-a).forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.text = y;
+    if (String(y) === prev) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  const data = getData();
+  if (!data.length) return;
+  const year = +document.getElementById('yearSelect').value;
+
+  const filtered = data.filter(r => {
+    const d = parseDate(getKey(r, ['date_event','Date_event','DATE_EVENT']));
+    return d && d.getFullYear() === year;
+  });
+
+  if (!filtered.length) return;
+
+  const catKey = filtered[0].hasOwnProperty('categorie') ? 'categorie' : 'Categorie';
+  const metierKey = filtered[0].hasOwnProperty('métier') ? 'métier' : 'metier';
+  const siteKey = filtered[0].hasOwnProperty('site') ? 'site' : 'Site';
+  const mailKey = filtered[0].hasOwnProperty('aph_mail') ? 'aph_mail' : 'aph_Mail';
+  const ppKey = 'premier_passage';
+
+  // METRICS
+  const total = filtered.length;
+  // Visiteurs uniques = aph_mail + id_cours + mois + annee
+const uniqSet = new Set();
+for (const r of filtered) {
+  const d = parseDate(getKey(r,['date_event','Date_event','DATE_EVENT']));
+  if (!d) continue;
+  const key = r[mailKey] + '|' + (r['id_cours']||r['Id_cours']||'') + '|' + d.getMonth() + '|' + d.getFullYear();
+  uniqSet.add(key);
+}
+const uniqPersons = uniqSet.size;
+  const cats = { PM: 0, PNM: 0, Autres: 0 };
+  for (const r of filtered) { const c = r[catKey] || 'Autres'; cats[c] = (cats[c]||0)+1; }
+
+  // Nombre de cours distincts
+  const uniqCours = new Set(filtered.map(r => r['id_cours']||r['Id_cours']||'')).size;
+
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric-card"><div class="m-label">Total visites</div><div class="m-value">${total.toLocaleString('fr')}</div><div class="m-sub">en ${year}</div></div>
+    <div class="metric-card"><div class="m-label">Cours consultés</div><div class="m-value">${uniqCours.toLocaleString('fr')}</div><div class="m-sub">cours distincts</div></div>
+    <div class="metric-card"><div class="m-label" style="color:var(--pm)">PM</div><div class="m-value" style="color:var(--pm)">${(cats.PM||0).toLocaleString('fr')}</div><div class="m-sub">${total ? Math.round((cats.PM||0)/total*100) : 0}% du total</div></div>
+    <div class="metric-card"><div class="m-label" style="color:var(--pnm)">PNM</div><div class="m-value" style="color:var(--pnm)">${(cats.PNM||0).toLocaleString('fr')}</div><div class="m-sub">${total ? Math.round((cats.PNM||0)/total*100) : 0}% du total</div></div>
+    <div class="metric-card"><div class="m-label" style="color:var(--autres)">Autres</div><div class="m-value" style="color:var(--autres)">${(cats.Autres||0).toLocaleString('fr')}</div><div class="m-sub">${total ? Math.round((cats.Autres||0)/total*100) : 0}% du total</div></div>
+  `;
+
+  // NOUVEAUX / HABITUEES
+  const hasPP = filtered.some(r => r[ppKey] !== undefined && r[ppKey] !== '');
+  const nhGrid = document.getElementById('nhGrid');
+  const noteBlock = document.getElementById('noteBlock');
+  if (hasPP) {
+    const nouveaux = filtered.filter(r => String(r[ppKey]) === '1').length;
+    const habitues  = filtered.filter(r => String(r[ppKey]) === '0').length;
+    nhGrid.style.display = 'grid';
+    noteBlock.style.display = 'block';
+    nhGrid.innerHTML = `
+      <div class="nh-card nouveaux">
+        <div class="nh-info"><div class="nh-label">Nouveaux visiteurs</div><div class="nh-desc">Première visite dans l'année</div></div>
+        <div class="nh-value">${nouveaux.toLocaleString('fr')}</div>
+      </div>
+      <div class="nh-card habitues">
+        <div class="nh-info"><div class="nh-label">Visiteurs habitués</div><div class="nh-desc">Déjà vus cette année</div></div>
+        <div class="nh-value">${habitues.toLocaleString('fr')}</div>
+      </div>
+    `;
+  } else {
+    nhGrid.style.display = 'none';
+    noteBlock.style.display = 'none';
+  }
+
+  // MONTHLY DATA
+  const pmM = Array(12).fill(0), pnmM = Array(12).fill(0), autresM = Array(12).fill(0);
+  const nouvM = Array(12).fill(0), habM = Array(12).fill(0);
+  for (const r of filtered) {
+    const d = parseDate(getKey(r,['date_event','Date_event','DATE_EVENT']));
+    if (!d) continue;
+    const mo = d.getMonth();
+    const c = r[catKey] || 'Autres';
+    if (c === 'PM') pmM[mo]++;
+    else if (c === 'PNM') pnmM[mo]++;
+    else autresM[mo]++;
+    if (hasPP) {
+      if (String(r[ppKey]) === '1') nouvM[mo]++;
+      else if (String(r[ppKey]) === '0') habM[mo]++;
+    }
+  }
+
+  // CHART CATEGORIES
+  document.getElementById('legendCat').innerHTML = `
+    <div class="legend-item"><span class="legend-dot" style="background:var(--pm)"></span>PM (${(cats.PM||0).toLocaleString('fr')})</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--pnm)"></span>PNM (${(cats.PNM||0).toLocaleString('fr')})</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--autres-bg);border:1px solid var(--autres)"></span>Autres (${(cats.Autres||0).toLocaleString('fr')})</div>
+  `;
+  if (chartCatInst) chartCatInst.destroy();
+  chartCatInst = new Chart(document.getElementById('chartCat'), {
+    type: 'bar',
+    data: {
+      labels: MONTHS_SHORT,
+      datasets: [
+        { label: 'PM', data: pmM, backgroundColor: '#2563eb' },
+        { label: 'PNM', data: pnmM, backgroundColor: '#059669' },
+        { label: 'Autres', data: autresM, backgroundColor: '#d97706' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { stacked: true, ticks: { autoSkip: false, font: { family: 'DM Sans', size: 11 } }, grid: { display: false } },
+        y: { stacked: true, ticks: { callback: v => v.toLocaleString('fr'), font: { family: 'DM Sans', size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+
+  // PIE CHART
+  if (chartPieInst) chartPieInst.destroy();
+  chartPieInst = new Chart(document.getElementById('chartPie'), {
+    type: 'doughnut',
+    data: {
+      labels: ['PM','PNM','Autres'],
+      datasets: [{ data: [cats.PM||0, cats.PNM||0, cats.Autres||0], backgroundColor: ['#2563eb','#059669','#d97706'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { display: false } }
+    }
+  });
+  document.getElementById('catStats').innerHTML = ['PM','PNM','Autres'].map((c,i) => {
+    const colors = ['var(--pm)','var(--pnm)','var(--autres)'];
+    const bgs = ['var(--pm-bg)','var(--pnm-bg)','var(--autres-bg)'];
+    const pct = total ? Math.round((cats[c]||0)/total*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;border-radius:8px;background:${bgs[i]};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${colors[i]}">${pct}%</div>
+      <div><div style="font-size:13px;font-weight:500">${c}</div><div style="font-size:11px;color:var(--text3)">${(cats[c]||0).toLocaleString('fr')} visites</div></div>
+    </div>`;
+  }).join('');
+
+  // EVOLUTION
+  if (hasPP) {
+    document.getElementById('legendEvo').innerHTML = `
+      <div class="legend-item"><span class="legend-dot" style="background:var(--new)"></span>Nouveaux visiteurs</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--hab)"></span>Visiteurs habitués</div>
+    `;
+    if (chartEvoInst) chartEvoInst.destroy();
+    chartEvoInst = new Chart(document.getElementById('chartEvo'), {
+      type: 'line',
+      data: {
+        labels: MONTHS_SHORT,
+        datasets: [
+          { label: 'Nouveaux', data: nouvM, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,0.08)', tension: 0.35, fill: true, pointRadius: 4, pointBackgroundColor: '#0891b2' },
+          { label: 'Habitués', data: habM, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)', tension: 0.35, fill: true, borderDash: [5,3], pointRadius: 4, pointBackgroundColor: '#7c3aed' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { autoSkip: false, font: { family: 'DM Sans', size: 11 } }, grid: { display: false } },
+          y: { ticks: { callback: v => v.toLocaleString('fr'), font: { family: 'DM Sans', size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+        }
+      }
+    });
+    document.getElementById('tableEvo').innerHTML = MONTHS.map((m, i) => {
+      const tot = nouvM[i] + habM[i];
+      const pct = tot ? Math.round(nouvM[i]/tot*100) : 0;
+      return `<tr>
+        <td style="font-weight:500">${m}</td>
+        <td style="color:var(--new);font-weight:500">${nouvM[i].toLocaleString('fr')}</td>
+        <td style="color:var(--hab);font-weight:500">${habM[i].toLocaleString('fr')}</td>
+        <td>${tot.toLocaleString('fr')}</td>
+        <td><div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:4px;background:var(--surface2);border-radius:2px">
+            <div style="width:${pct}%;height:100%;background:var(--new);border-radius:2px"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text2);min-width:28px">${pct}%</span>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // METIERS TABLE
+  const metierCount = {}, metierCat = {};
+  for (const r of filtered) {
+    const m = getKey(r,['métier','metier']) || '-';
+    metierCount[m] = (metierCount[m]||0)+1;
+    metierCat[m] = r[catKey] || 'Autres';
+  }
+  const topMet = Object.entries(metierCount).sort((a,b) => b[1]-a[1]).slice(0,30);
+  document.getElementById('tableMetiers').innerHTML = topMet.map(([m,cnt],i) => {
+    const c = metierCat[m] || 'Autres';
+    const bc = c === 'PM' ? 'badge-pm' : c === 'PNM' ? 'badge-pnm' : 'badge-autres';
+    return `<tr><td class="rank">${i+1}</td><td>${m}</td><td><span class="badge ${bc}">${c}</span></td><td style="font-weight:500">${cnt.toLocaleString('fr')}</td></tr>`;
+  }).join('');
+
+  // SITES TABLE + CHART
+  const siteCount = {};
+  const siteMon = {};
+  for (const r of filtered) {
+    const s = getKey(r,['site','Site']) || '-';
+    siteCount[s] = (siteCount[s]||0)+1;
+    const d = parseDate(getKey(r,['date_event','Date_event','DATE_EVENT']));
+    if (d) {
+      if (!siteMon[s]) siteMon[s] = Array(12).fill(0);
+      siteMon[s][d.getMonth()]++;
+    }
+  }
+  const topSites = Object.entries(siteCount).sort((a,b) => b[1]-a[1]);
+  document.getElementById('tableSites').innerHTML = topSites.slice(0,30).map(([s,cnt],i) =>
+    `<tr><td class="rank">${i+1}</td><td>${s}</td><td style="font-weight:500">${cnt.toLocaleString('fr')}</td></tr>`
+  ).join('');
+
+  const top5 = topSites.slice(0,5).map(([s]) => s);
+  document.getElementById('legendSites').innerHTML = top5.map((s,i) =>
+    `<div class="legend-item"><span class="legend-dot" style="background:${SITE_COLORS[i]}"></span>${s.length>30?s.slice(0,30)+'…':s}</div>`
+  ).join('');
+  if (chartSitesInst) chartSitesInst.destroy();
+  chartSitesInst = new Chart(document.getElementById('chartSites'), {
+    type: 'line',
+    data: {
+      labels: MONTHS_SHORT,
+      datasets: top5.map((s,i) => ({
+        label: s, data: siteMon[s] || Array(12).fill(0),
+        borderColor: SITE_COLORS[i], backgroundColor: 'transparent',
+        tension: 0.3, pointRadius: 3, pointBackgroundColor: SITE_COLORS[i]
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: false, font: { family: 'DM Sans', size: 11 } }, grid: { display: false } },
+        y: { ticks: { callback: v => v.toLocaleString('fr'), font: { family: 'DM Sans', size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+}
+
+function showTab(name, btn) {
+  ['categories','evolution','metiers','sites'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// Drag & drop
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = 'var(--accent)'; });
+uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = ''; });
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+    loadFile(document.getElementById('fileInput'));
+  }
+});
+</script>
+</body>
+</html>
